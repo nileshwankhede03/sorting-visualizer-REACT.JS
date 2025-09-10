@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorting Visualizer</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f0f0f0;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    .array-container {
+      margin: 20px;
+      font-size: 1.5em;
+    }
+
+    .array-element {
+      display: inline-block;
+      margin: 0 5px;
+      padding: 10px;
+      background-color: #69b3a2;
+      color: white;
+      border-radius: 5px;
+    }
+
+    .array-element.sorted {
+      background-color: #ff7f50;
+    }
+
+    .array-element.current {
+      background-color: #ffd700;
+    }
+
+    .array-element.swap {
+      background-color: #ff4500;
+    }
+
+    #time-taken {
+      margin-top: 20px;
+    }
+    .btns{
+      margin-left: 45px;
+      width:155px;
+      height:35px;
+      border-radius: 15px;
+      background-color: #ff7f50;
+
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Sorting Visualizer</h1>
+    <div class="controls">
+      <button onclick="startSort('bubble')">Bubble Sort</button>
+      <button onclick="startSort('insertion')">Insertion Sort</button>
+      <button onclick="startSort('selection')">Selection Sort</button>
+      <button onclick="startSort('merge')">Merge Sort</button>
+      <button onclick="startSort('quick')">Quick Sort</button>
+      <button onclick="resetArray()" class="btns">Reset Array</button>
+      <button onclick="stopExecution()" class="btns">Stop Execution</button>
+    </div>
+    <div class="array-container" id="array-container"></div>
+    <p id="time-taken"></p>
+  </div>
+  <script>
+    const arrayContainer = document.getElementById('array-container');
+    const timeTakenDisplay = document.getElementById('time-taken');
+
+    let array = [];
+    let stopSorting = false;
+    const delay = 900;
+
+    function generateArray(size = 10) {
+      array = [];
+      for (let i = 0; i < size; i++) {
+        array.push(Math.floor(Math.random() * 100) + 1);
+      }
+      displayArray();
+      timeTakenDisplay.textContent = '';
+      stopSorting = false;
+    }
+
+    function displayArray(highlightIndices = []) {
+      arrayContainer.innerHTML = '';
+      array.forEach((value, index) => {
+        const element = document.createElement('span');
+        element.classList.add('array-element');
+        element.textContent = value;
+
+        if (highlightIndices.includes(index)) {
+          element.classList.add('current');
+        }
+
+        arrayContainer.appendChild(element);
+      });
+    }
+
+    function resetArray() {
+      generateArray();
+    }
+
+    function stopExecution() {
+      stopSorting = true;
+    }
+
+    async function startSort(type) {
+      stopSorting = false;
+      const start = performance.now();
+      switch(type) {
+        case 'bubble':
+          await bubbleSort(array);
+          if (!stopSorting) timeTakenDisplay.textContent = `Time taken: O(n^2)`;
+          break;
+        case 'insertion':
+          await insertionSort(array);
+          if (!stopSorting) timeTakenDisplay.textContent = `Time taken: O(n^2)`;
+          break;
+        case 'selection':
+          await selectionSort(array);
+          if (!stopSorting) timeTakenDisplay.textContent = `Time taken: O(n^2)`;
+          break;
+        case 'merge':
+          await mergeSort(array, 0, array.length - 1);
+          if (!stopSorting) timeTakenDisplay.textContent = `Time taken: O(n log n)`;
+          break;
+        case 'quick':
+          await quickSort(array, 0, array.length - 1);
+          if (!stopSorting) timeTakenDisplay.textContent = `Time taken: O(n log n)`;
+          break;
+      }
+      if (!stopSorting) markSorted();
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function bubbleSort(arr) {
+      for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = 0; j < arr.length - i - 1; j++) {
+          if (stopSorting) return;
+          displayArray([j, j + 1]);
+          if (arr[j] > arr[j + 1]) {
+            [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+            displayArray([j, j + 1]);
+            await sleep(delay);
+          }
+        }
+      }
+    }
+
+    async function insertionSort(arr) {
+      for (let i = 1; i < arr.length; i++) {
+        let key = arr[i];
+        let j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+          if (stopSorting) return;
+          arr[j + 1] = arr[j];
+          j = j - 1;
+          displayArray([j + 1, j]);
+          await sleep(delay);
+        }
+        arr[j + 1] = key;
+      }
+    }
+
+    async function selectionSort(arr) {
+      for (let i = 0; i < arr.length - 1; i++) {
+        let minIndex = i;
+        for (let j = i + 1; j < arr.length; j++) {
+          if (stopSorting) return;
+          displayArray([minIndex, j]);
+          if (arr[j] < arr[minIndex]) {
+            minIndex = j;
+          }
+        }
+        if (minIndex !== i) {
+          [arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];
+          displayArray([i, minIndex]);
+          await sleep(delay);
+        }
+      }
+    }
+
+    async function mergeSort(arr, left, right) {
+      if (left < right) {
+        const mid = Math.floor((left + right) / 2);
+        await mergeSort(arr, left, mid);
+        await mergeSort(arr, mid + 1, right);
+        await merge(arr, left, mid, right);
+      }
+    }
+
+    async function merge(arr, left, mid, right) {
+      const n1 = mid - left + 1;
+      const n2 = right - mid;
+      const leftArr = new Array(n1);
+      const rightArr = new Array(n2);
+
+      for (let i = 0; i < n1; i++) {
+        leftArr[i] = arr[left + i];
+      }
+      for (let j = 0; j < n2; j++) {
+        rightArr[j] = arr[mid + 1 + j];
+      }
+
+      let i = 0, j = 0, k = left;
+      while (i < n1 && j < n2) {
+        if (stopSorting) return;
+        if (leftArr[i] <= rightArr[j]) {
+          arr[k] = leftArr[i];
+          i++;
+        } else {
+          arr[k] = rightArr[j];
+          j++;
+        }
+        k++;
+        displayArray([left + i - 1, mid + 1 + j - 1]);
+        await sleep(delay);
+      }
+
+      while (i < n1) {
+        if (stopSorting) return;
+        arr[k] = leftArr[i];
+        i++;
+        k++;
+        displayArray([left + i - 1]);
+        await sleep(delay);
+      }
+
+      while (j < n2) {
+        if (stopSorting) return;
+        arr[k] = rightArr[j];
+        j++;
+        k++;
+        displayArray([mid + 1 + j - 1]);
+        await sleep(delay);
+      }
+    }
+
+    async function quickSort(arr, low, high) {
+      if (low < high) {
+        const pi = await partition(arr, low, high);
+        await quickSort(arr, low, pi - 1);
+        await quickSort(arr, pi + 1, high);
+      }
+    }
+
+    async function partition(arr, low, high) {
+      const pivot = arr[high];
+      let i = (low - 1);
+      for (let j = low; j <= high - 1; j++) {
+        if (stopSorting) return;
+        displayArray([i + 1, j]);
+        if (arr[j] < pivot) {
+          i++;
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+          displayArray([i, j]);
+          await sleep(delay);
+        }
+      }
+      [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+      displayArray([i + 1, high]);
+      await sleep(delay);
+      return (i + 1);
+    }
+
+    function markSorted() {
+      const elements = document.querySelectorAll('.array-element');
+      elements.forEach(element => element.classList.add('sorted'));
+    }
+
+    generateArray();
+  </script>
+</body>
+</html>
